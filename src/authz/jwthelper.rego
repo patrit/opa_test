@@ -21,6 +21,7 @@ claims := payload if {
 }
 
 username = claims.username
+
 roles := claims.roles
 
 bearer_token := t if {

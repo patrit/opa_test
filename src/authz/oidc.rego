@@ -8,10 +8,10 @@ import future.keywords.if
 jwks := jwks_request("https://login.microsoftonline.com/common/discovery/v2.0/keys").body
 
 jwks_request(url) := http.send({
-  "url": url,
-  "method": "GET",
-  "force_cache": true,
-  "force_cache_duration_seconds": 3600 # Cache response for an hour
+	"url": url,
+	"method": "GET",
+	"force_cache": true,
+	"force_cache_duration_seconds": 3600, # Cache response for an hour
 })
 
 bearer_token := token if {
@@ -40,4 +40,5 @@ claims := payload if {
 }
 
 username = claims.username
+
 roles := claims.roles

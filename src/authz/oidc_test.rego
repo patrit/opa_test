@@ -2,200 +2,196 @@ package oidc
 
 import future.keywords.in
 
-
 now_ns := time.now_ns()
+
 now_s := floor(now_ns / 1000000000)
+
 my_claim := {
-  "name":  "Random Dude",
-  "roles": ["role001","role002"],
-  "username": "dude",
-  "iss": "my_iss",
-  "sub": "mailto:dude@no.where",
-  "nbf": now_s, # not before
-  "exp": now_s + 3600, # expires in 1h
-  "iat": now_s, # jwt creation time
-  "jti": "jti666"
+	"name": "Random Dude",
+	"roles": ["role001", "role002"],
+	"username": "dude",
+	"iss": "my_iss",
+	"sub": "mailto:dude@no.where",
+	"nbf": now_s, # not before
+	"exp": now_s + 3600, # expires in 1h
+	"iat": now_s, # jwt creation time
+	"jti": "jti666",
 }
+
 # pem ceriticates defined below
 my_jwk := crypto.x509.parse_rsa_private_key(cert_private)
-my_header := {"alg": "RS256", "typ":"JWT", "kid": "key001"}
+
+my_header := {"alg": "RS256", "typ": "JWT", "kid": "key001"}
+
 my_jwt := io.jwt.encode_sign(my_header, my_claim, my_jwk)
 
 test_rs256_verify {
-  io.jwt.verify_rs256(my_jwt, cert_public)
+	io.jwt.verify_rs256(my_jwt, cert_public)
 }
 
 test_rs256_decode {
-  [header, payload, _] := io.jwt.decode(my_jwt)
-  header.alg == "RS256"
-  payload.username == "dude"
+	[header, payload, _] := io.jwt.decode(my_jwt)
+	header.alg == "RS256"
+	payload.username == "dude"
 }
 
 test_rs256_decode_verify {
-  [valid, header, payload] := io.jwt.decode_verify(my_jwt, {"cert": cert_public})
-  header.alg == "RS256"
-  payload.username == "dude"
-  valid
+	[valid, header, payload] := io.jwt.decode_verify(my_jwt, {"cert": cert_public})
+	header.alg == "RS256"
+	payload.username == "dude"
+	valid
 }
 
 test_alg_correct {
-  [valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "alg": "RS256"})
-  valid
+	[valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "alg": "RS256"})
+	valid
 }
 
 test_alg_unknown {
-  [valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "alg": "UNKNOWN"})
-  not valid
+	[valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "alg": "UNKNOWN"})
+	not valid
 }
 
 test_alg_mismatch {
-  [valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "alg": "RS512"})
-  not valid
+	[valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "alg": "RS512"})
+	not valid
 }
 
 test_iss_missing {
-  claim = {}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
-  valid
+	claim = {}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
+	valid
 }
 
 test_iss_wrong {
-  claim = {"iss": "wrong"}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "iss": "foo"})
-  not valid
+	claim = {"iss": "wrong"}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "iss": "foo"})
+	not valid
 }
 
 test_iss_correct {
-  claim = {"iss": "correct"}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "iss": "correct"})
-  valid
+	claim = {"iss": "correct"}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "iss": "correct"})
+	valid
 }
 
 test_time_lower {
-  [valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "time": now_ns - 10000000000})
-  not valid
+	[valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "time": now_ns - 10000000000})
+	not valid
 }
 
 test_time_upper {
-  [valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "time": now_ns + 3601000000000})
-  not valid
+	[valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "time": now_ns + 3601000000000})
+	not valid
 }
 
 test_time_correct {
-  [valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "time": now_ns + 10000000000})
-  valid
+	[valid, _, _] := io.jwt.decode_verify(my_jwt, {"cert": cert_public, "time": now_ns + 10000000000})
+	valid
 }
 
 test_nbf_not_yet_achieved {
-  claim = {"nbf": now_s + 100, "exp": now_s + 101}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
-  not valid
+	claim = {"nbf": now_s + 100, "exp": now_s + 101}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
+	not valid
 }
 
 test_exp_achieved {
-  claim = {"nbf": now_s - 2, "exp": now_s - 1}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
-  not valid
+	claim = {"nbf": now_s - 2, "exp": now_s - 1}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
+	not valid
 }
 
 test_nbf_exp_within {
-  claim = {"nbf": now_s - 2, "exp": now_s + 10}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
-  valid
-  [valid2, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "time": now_ns})
-  valid2
+	claim = {"nbf": now_s - 2, "exp": now_s + 10}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
+	valid
+	[valid2, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "time": now_ns})
+	valid2
 }
 
 test_aud_verify {
-  claim = {"aud": "http://no.where"}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "aud": "http://no.where"})
-  valid
+	claim = {"aud": "http://no.where"}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "aud": "http://no.where"})
+	valid
 }
 
 test_aud_wrong {
-  claim = {"aud": "http://no.where"}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "aud": "http://some.where"})
-  not valid
+	claim = {"aud": "http://no.where"}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "aud": "http://some.where"})
+	not valid
 }
 
 test_aud_missing_twice {
-  claim = {}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
-  valid
+	claim = {}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public})
+	valid
 }
 
 test_aud_verify_missing {
-  claim = {}
-  jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
-  [valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "aud": "missing"})
-  not valid
+	claim = {}
+	jwt := io.jwt.encode_sign(my_header, claim, my_jwk)
+	[valid, _, _] := io.jwt.decode_verify(jwt, {"cert": cert_public, "aud": "missing"})
+	not valid
 }
 
 # test using the oidc package
 mock_http_send(_) := {"body": {"keys": [{"kid": "key001", "cert": cert_public}, {"kid": "key002"}]}}
+
 mock_input := {"headers": {"authorization": sprintf("Bearer %s", [my_jwt])}}
 
 test_oidc_bearer_token {
-  t := bearer_token
-    with input as mock_input
-  t == my_jwt
+	t := bearer_token with input as mock_input
+	t == my_jwt
 }
 
 test_oidc_bearer_token_unextractable {
-  not bearer_token
-    with input as {"headers": {"authorization": sprintf("Invalid %s", [my_jwt])}}
+	not bearer_token with input as {"headers": {"authorization": sprintf("Invalid %s", [my_jwt])}}
 }
 
 # METADATA
 # description: test that the correct key id is extracted from the JWT
 test_oidc_kid {
-  k := headers.kid
-    with input as mock_input
-  k == "key001"
+	k := headers.kid with input as mock_input
+	k == "key001"
 }
 
 test_oidc_kid_not_existing {
-  jwt := io.jwt.encode_sign({"alg": "RS256"}, {}, my_jwk)
-  not headers.kid
-    with input as {"headers": {"authorization": sprintf("Bearer %s", [jwt])}}
+	jwt := io.jwt.encode_sign({"alg": "RS256"}, {}, my_jwk)
+	not headers.kid with input as {"headers": {"authorization": sprintf("Bearer %s", [jwt])}}
 }
 
 test_oidc_jwk {
-  k := jwk
-    with http.send as mock_http_send
-    with input as mock_input
-  k.kid == "key001"
+	k := jwk with http.send as mock_http_send
+		with input as mock_input
+	k.kid == "key001"
 }
 
 test_oidc_jwk_with_empty_jwks {
-  not jwk
-    with jwks as {"keys": []}
-    with input as mock_input
+	not jwk with jwks as {"keys": []}
+		with input as mock_input
 }
 
 test_oidc_username {
-  c := username
-    with jwk as {"cert": cert_public}
-    with input as mock_input
-  c == "dude"
+	c := username with jwk as {"cert": cert_public}
+		with input as mock_input
+	c == "dude"
 }
 
 test_oidc_roles {
-  c := roles
-    with jwk as {"cert": cert_public}
-    with input as mock_input
-  c == ["role001","role002"]
+	c := roles with jwk as {"cert": cert_public}
+		with input as mock_input
+	c == ["role001", "role002"]
 }
-
 
 # openssl genrsa -out jwtRSA256-private.pem 2048
 # openssl rsa -in jwtRSA256-private.pem -pubout -outform PEM -out jwtRSA256-public.pem

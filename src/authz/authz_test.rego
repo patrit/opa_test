@@ -17,16 +17,13 @@ test_get_another_user_denied {
 }
 
 test_has_gwg_education {
-	allow
-  	with data.gwg.has_gwg_education as true
+	allow with data.gwg.has_gwg_education as true
 }
 
 test_has_gwg_education_no {
-	not allow
-  	with data.gwg.has_gwg_education as false
+	not allow with data.gwg.has_gwg_education as false
 }
 
 #todo_test_user_allowed_http_client_data {
 #	false # Remember to test this later!
 #}
-
