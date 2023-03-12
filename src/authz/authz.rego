@@ -15,3 +15,6 @@ allow {
 	profile_id = input.user_id
 }
 
+allow {
+	has_gwg_education
+}

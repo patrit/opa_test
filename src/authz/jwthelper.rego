@@ -20,6 +20,9 @@ claims := payload if {
 	[_, payload, _] := io.jwt.decode(bearer_token)
 }
 
+username = claims.username
+roles := claims.roles
+
 bearer_token := t if {
 	# Bearer tokens are contained inside of the HTTP Authorization header. This rule
 	# parses the header and extracts the Bearer token value. If no Bearer token is
